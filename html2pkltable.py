@@ -382,7 +382,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    unit_list_csv = 'unit_list_top.csv'
-    line_list_csv = 'line_list.csv'
+    unit_list_csv = 'csv/unit_list_top.csv'
+    line_list_csv = 'csv/line_list.csv'
 
     process_and_save_tables(args.dir, unit_list_csv, line_list_csv, args.normalize)
