@@ -9,11 +9,11 @@ def calculate_accuracy(manual_data, model_data):
     for problem_set_id, problems in manual_data.items():
         if problem_set_id not in model_data:
             continue  # Skip if model data does not contain this problem set
-
+        
         for problem_id, manual_labels in problems.items():
-            # Check if the manual labels exist and are valid
-            if "manual" not in manual_labels:
-                continue  # Skip if 'manual' key is missing
+            is_include = manual_labels.get("is_include", False)
+            if not is_include:
+                continue
 
             manual_row = manual_labels["manual"].get("row_split", "")
             manual_col = manual_labels["manual"].get("col_split", "")
@@ -40,12 +40,12 @@ def calculate_accuracy(manual_data, model_data):
 
     # Calculate accuracies for each model
     accuracies = {model: correct / total_counts if total_counts > 0 else 0 for model, correct in correct_counts.items()}
-    return accuracies
+    return accuracies, total_counts
 
 import json
 
 # Load manual labels from split_gold.json
-manual_json_path = 'split_gold.json'
+manual_json_path = 'split_gold_updated.json'
 with open(manual_json_path, 'r', encoding='utf-8') as f:
     manual_data = json.load(f)
 
@@ -55,5 +55,6 @@ with open(model_json_path, 'r', encoding='utf-8') as f:
     model_data = json.load(f)
 
 # Calculate accuracies based on the provided manual and model data
-accuracies = calculate_accuracy(manual_data, model_data)
+accuracies, total_counts = calculate_accuracy(manual_data, model_data)
 print(accuracies)
+print(f'対象データ数: {total_counts}')
