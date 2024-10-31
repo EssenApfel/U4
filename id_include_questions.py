@@ -7,7 +7,12 @@ with open('split_gold.json', 'r', encoding='utf-8') as f:
 with open('table_qa/valid_tqa/questions_tqa_valid.json', 'r', encoding='utf-8') as f:
     questions_data = json.load(f)
 
-# table_idの存在確認とtrue/falseのフラグ付け
+# すべてのis_includeをfalseに初期化
+for doc_id, tables in split_data.items():
+    for table_id in tables:
+        split_data[doc_id][table_id]["is_include"] = False
+
+# questions_dataを基にtrueに更新
 for question_id, question_info in questions_data.items():
     table_id = question_info["table_id"]
     doc_id = question_info["doc_id"]
@@ -16,7 +21,7 @@ for question_id, question_info in questions_data.items():
     if doc_id not in split_data:
         split_data[doc_id] = {}
 
-    # table_idが存在するかどうかでtrue/falseを設定
+    # table_idが存在する場合はis_includeをtrueに設定
     if table_id in split_data[doc_id]:
         split_data[doc_id][table_id]["is_include"] = True
 
