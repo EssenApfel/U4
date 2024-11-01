@@ -156,6 +156,7 @@ def generate_sentences_from_table(table, tde_processed=False, average_type='micr
             else:
                 sentence = f"{title_text_row}の{title_text_col}は{data_cell.get('text', '')}です。"
             
+            # もし，テキストが空でないならば文章を追加する
             if data_cell.get('text', '') != '':
                 sentences.append(sentence)
                 # 使用したセルの'id'を追加
@@ -166,7 +167,7 @@ def generate_sentences_from_table(table, tde_processed=False, average_type='micr
 
 def process_and_save_sentences(root_dir, tde_processed, average_type, label_type):
     # 保存先ディレクトリ名にaverage_typeとlabel_typeを含める
-    save_dir = os.path.join(root_dir, f"../sentencegen_output/output_{average_type}_{label_type}")
+    save_dir = f"table_qa/valid_tqa/sentencegen_output/output_{average_type}_{label_type}"
     
     for file_path in iterate_search_files(root_dir, '.pkl'):  # pklファイルを探索
         try:
