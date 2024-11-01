@@ -52,7 +52,24 @@ def evaluate_splits(input_pkl_path, output_json_path):
 
     print(f"結果が {output_json_path} に保存されました。")
 
-# 使用例
-pkl_root_path = 'table_qa/valid_tqa/html2pkltable/update_date'
-output_json = 'predict_splitpoint_10_updatedate.json'
+import argparse
+
+# コマンドライン引数の設定
+parser = argparse.ArgumentParser(
+    description="PKLファイルが格納されているディレクトリからテーブルを処理し、モデル予測データをJSON形式で出力します。"
+)
+parser.add_argument(
+    '-p', '--pkl_root', required=True, help='テーブルのPKLファイルが格納されているルートディレクトリのパスを指定します。'
+)
+parser.add_argument(
+    '-o', '--output', required=True, help='モデル予測データの出力先JSONファイルのパスを指定します。'
+)
+
+# 引数をパース
+args = parser.parse_args()
+pkl_root_path = args.pkl_root
+output_json = args.output
+
+# モデル予測データの作成
 evaluate_splits(pkl_root_path, output_json)
+print(f"モデル予測データを {output_json} に出力しました。")
