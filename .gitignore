@@ -4,3 +4,4 @@ TDEmodel/
 *.out
 *.json
 !/split_gold.json
+*.ipynb
