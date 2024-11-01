@@ -1,0 +1,6 @@
+table_qa/
+table_retrieval/
+TDEmodel/
+*.out
+*.json
+!/split_gold.json
