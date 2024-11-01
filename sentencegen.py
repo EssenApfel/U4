@@ -5,6 +5,10 @@ import numpy as np
 import argparse
 from tqdm import tqdm
 from util import iterate_search_files
+
+def is_dict_and_not_empty(cell):
+    return isinstance(cell, dict) and cell.get('text', '') != ''
+
 # 1023に指摘された「textが空文字ならば信頼性がない」と言われたため，空なら無視
 # 1023に指摘された「空文字を軸にテキストを生成するのは意味がない」と言われたため，からなら無視
 def calculate_score_argmax(table, row_split, col_split, average_type='micro'):
@@ -12,9 +16,6 @@ def calculate_score_argmax(table, row_split, col_split, average_type='micro'):
     left = table.iloc[row_split:, :col_split]
     upper_left = table.iloc[:row_split, :col_split]
     lower_right = table.iloc[row_split:, col_split:]
-
-    def is_dict_and_not_empty(cell):
-        return isinstance(cell, dict) and cell.get('text', '') != ''
         
     non_data_upper_left_count = sum(
         1 for cell in upper_left.to_numpy().flatten() 
@@ -73,9 +74,6 @@ def calculate_score_probability(table, row_split, col_split, average_type='micro
     left = table.iloc[row_split:, :col_split]
     upper_left = table.iloc[:row_split, :col_split]
     lower_right = table.iloc[row_split:, col_split:]
-
-    def is_dict_and_not_empty(cell):
-        return isinstance(cell, dict) and cell.get('text', '') != ''
         
     non_data_upper_left_correct = sum(
         sum(cell['type'][:3]) for cell in upper_left.to_numpy().flatten() 
