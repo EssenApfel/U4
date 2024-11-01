@@ -101,8 +101,8 @@ def find_best_split(table, average_type='micro', label_type='argmax'):
     # 1021追加, 10までrangeを伸ばすことで精度向上
     tab_range = 10 # セルを分割する最大の大きさ
 
-    for row_split in range(1, min(tab_range+1, table.shape[0])):
-        for col_split in range(1, min(tab_range+1, table.shape[1])):
+    for row_split in range(0, min(tab_range+1, table.shape[0])):
+        for col_split in range(0, min(tab_range+1, table.shape[1])):
             if label_type=='argmax':
                 score = calculate_score_argmax(table, row_split, col_split, average_type)
             else:
