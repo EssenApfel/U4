@@ -8,64 +8,43 @@ from util import iterate_search_files
 
 def is_dict_and_not_empty(cell):
     return isinstance(cell, dict) and cell.get('text', '') != ''
-
 # 1023に指摘された「textが空文字ならば信頼性がない」と言われたため，空なら無視
 # 1023に指摘された「空文字を軸にテキストを生成するのは意味がない」と言われたため，からなら無視
+
 def calculate_score_argmax(table, row_split, col_split, average_type='micro'):
-    upper = table.iloc[:row_split, col_split:]
-    left = table.iloc[row_split:, :col_split]
-    upper_left = table.iloc[:row_split, :col_split]
-    lower_right = table.iloc[row_split:, col_split:]
-        
-    non_data_upper_left_count = sum(
-        1 for cell in upper_left.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell) and np.argmax(cell.get('type', [0, 0, 0, 0])) != 3
-    )
-    total_upper_left_cells = sum(
-        1 for cell in upper_left.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell)
-    )
+    # リファクタリング
+    def count_cells(region, is_data):
+        return sum(
+            1 for cell in region.to_numpy().flatten()
+            if is_dict_and_not_empty(cell) and (np.argmax(cell.get('type', [0, 0, 0, 0])) == 3) == is_data
+        )
 
-    non_data_upper_count = sum(
-        1 for cell in upper.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell) and np.argmax(cell.get('type', [0, 0, 0, 0])) != 3
-    )
-    total_upper_cells = sum(
-        1 for cell in upper.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell)
-    )
+    def total_cells(region):
+        return sum(1 for cell in region.to_numpy().flatten() if is_dict_and_not_empty(cell))
 
-    non_data_left_count = sum(
-        1 for cell in left.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell) and np.argmax(cell.get('type', [0, 0, 0, 0])) != 3
-    )
-    total_left_cells = sum(
-        1 for cell in left.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell)
-    )
+    # Define regions
+    regions = {
+        "upper": table.iloc[:row_split, col_split:],
+        "left": table.iloc[row_split:, :col_split],
+        "upper_left": table.iloc[:row_split, :col_split],
+        "lower_right": table.iloc[row_split:, col_split:]
+    }
 
-    data_lower_right_count = sum(
-        1 for cell in lower_right.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell) and np.argmax(cell.get('type', [0, 0, 0, 0])) == 3
-    )
-    total_lower_right_cells = sum(
-        1 for cell in lower_right.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell)
-    )
+    # Count cells
+    non_data_count = sum(count_cells(regions[region], is_data=False) for region in ["upper", "left", "upper_left"])
+    non_data_total = sum(total_cells(regions[region]) for region in ["upper", "left", "upper_left"])
+    data_count = count_cells(regions["lower_right"], is_data=True)
+    data_total = total_cells(regions["lower_right"])
 
-    non_data_total_correct = non_data_left_count + non_data_upper_count + non_data_upper_left_count
-    non_data_total_cells = total_upper_cells + total_upper_left_cells + total_left_cells
+    # Handle case with zero cells
+    if non_data_total == 0 or data_total == 0:
+        return 0
 
-    data_total_correct = data_lower_right_count
-    data_total_cells = total_lower_right_cells
-
-    if non_data_total_cells == 0 or data_total_cells == 0:
-        return 0  # Return zero if any denominator is zero
-
+    # Calculate score
     if average_type == 'macro':
-        score = ((non_data_total_correct / non_data_total_cells) + (data_total_correct / data_total_cells)) / 2
+        score = ((non_data_count / non_data_total) + (data_count / data_total)) / 2
     else:
-        score = (non_data_total_correct + data_total_correct) / (non_data_total_cells + data_total_cells)
+        score = (non_data_count + data_count) / (non_data_total + data_total)
 
     return score
 
@@ -120,6 +99,53 @@ def calculate_score_probability(table, row_split, col_split, average_type='micro
     if non_data_total_cells == 0 or data_total_cells == 0:
         return 0  # Return zero if any denominator is zero
 
+    if average_type == 'macro':
+        score = ((non_data_total_correct / non_data_total_cells) + (data_total_correct / data_total_cells)) / 2
+    else:
+        score = (non_data_total_correct + data_total_correct) / (non_data_total_cells + data_total_cells)
+
+    return score
+
+def new_calculate_score_probability(table, row_split, col_split, average_type='micro'):
+    def sum_non_data_probabilities(region):
+        """Calculate the sum of probabilities for non-data (first three elements of 'type')."""
+        return sum(
+            sum(cell['type'][:3]) for cell in region.to_numpy().flatten() 
+            if is_dict_and_not_empty(cell) and 'type' in cell
+        )
+
+    def sum_data_probabilities(region):
+        """Calculate the sum of probabilities for data (fourth element of 'type')."""
+        return sum(
+            cell['type'][3] for cell in region.to_numpy().flatten() 
+            if is_dict_and_not_empty(cell) and 'type' in cell
+        )
+
+    def total_cells(region):
+        """Count total cells that are dictionaries and not empty."""
+        return sum(1 for cell in region.to_numpy().flatten() if is_dict_and_not_empty(cell))
+
+    # Define regions
+    regions = {
+        "upper": table.iloc[:row_split, col_split:],
+        "left": table.iloc[row_split:, :col_split],
+        "upper_left": table.iloc[:row_split, :col_split],
+        "lower_right": table.iloc[row_split:, col_split:]
+    }
+
+    # Calculate non-data probabilities and total cells for upper, left, and upper_left regions
+    non_data_total_correct = sum(sum_non_data_probabilities(regions[region]) for region in ["upper", "left", "upper_left"])
+    non_data_total_cells = sum(total_cells(regions[region]) for region in ["upper", "left", "upper_left"])
+
+    # Calculate data probabilities and total cells for lower_right region
+    data_total_correct = sum_data_probabilities(regions["lower_right"])
+    data_total_cells = total_cells(regions["lower_right"])
+
+    # Handle case with zero cells
+    if non_data_total_cells == 0 or data_total_cells == 0:
+        return 0
+
+    # Calculate score
     if average_type == 'macro':
         score = ((non_data_total_correct / non_data_total_cells) + (data_total_correct / data_total_cells)) / 2
     else:
@@ -195,11 +221,6 @@ def generate_sentences_from_table(table, tde_processed=False, average_type='micr
                 datas.append(data_cell.get('text', ''))
     
     return sentences, cell_ids, datas
-
-# 使用例
-import os
-import pandas as pd
-import argparse
 
 def process_and_save_sentences(root_dir, tde_processed, average_type, label_type):
     # 保存先ディレクトリ名にaverage_typeとlabel_typeを含める
