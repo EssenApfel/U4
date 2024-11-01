@@ -44,17 +44,33 @@ def calculate_accuracy(manual_data, model_data):
 
 import json
 
-# Load manual labels from split_gold.json
-manual_json_path = 'split_gold_updated.json'
+# コマンドライン引数の設定
+import argparse
+import json
+parser = argparse.ArgumentParser(
+    description="手動ラベルデータとモデル予測データを比較し、精度を算出します。"
+)
+parser.add_argument(
+    '-f', '--file', required=True, help='モデル予測データの JSON ファイルのパスを指定します。'
+)
+parser.add_argument(
+    '-g', '--gold', required=True, help='手動ラベルデータの JSON ファイルのパスを指定します。'
+)
+
+# 引数をパース
+args = parser.parse_args()
+model_json_path = args.file
+manual_json_path = args.gold
+
+# 手動ラベルデータの読み込み
 with open(manual_json_path, 'r', encoding='utf-8') as f:
     manual_data = json.load(f)
 
-# Load model predictions from predict.json
-model_json_path = 'predict_splitpoint_10_updatedate.json'
+# モデル予測データの読み込み
 with open(model_json_path, 'r', encoding='utf-8') as f:
     model_data = json.load(f)
 
-# Calculate accuracies based on the provided manual and model data
+# 精度計算
 accuracies, total_counts = calculate_accuracy(manual_data, model_data)
-print(accuracies)
-print(f'対象データ数: {total_counts}')
+print("精度:", accuracies)
+print(f"対象データ数: {total_counts}")
