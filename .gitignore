@@ -6,3 +6,5 @@ TDEmodel/
 !/split_gold.json
 *.ipynb
 __pycache__
+*.log
+README.md
