@@ -49,64 +49,6 @@ def calculate_score_argmax(table, row_split, col_split, average_type='micro'):
     return score
 
 def calculate_score_probability(table, row_split, col_split, average_type='micro'):
-    upper = table.iloc[:row_split, col_split:]
-    left = table.iloc[row_split:, :col_split]
-    upper_left = table.iloc[:row_split, :col_split]
-    lower_right = table.iloc[row_split:, col_split:]
-        
-    non_data_upper_left_correct = sum(
-        sum(cell['type'][:3]) for cell in upper_left.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell) and 'type' in cell
-    )
-    total_upper_left_cells = sum(
-        1 for cell in upper_left.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell)
-    )
-
-    non_data_upper_correct = sum(
-        sum(cell['type'][:3]) for cell in upper.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell) and 'type' in cell
-    )
-    total_upper_cells = sum(
-        1 for cell in upper.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell)
-    )
-
-    non_data_left_correct = sum(
-        sum(cell['type'][:3]) for cell in left.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell) and 'type' in cell
-    )
-    total_left_cells = sum(
-        1 for cell in left.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell)
-    )
-
-    data_lower_right_correct = sum(
-        cell['type'][3] for cell in lower_right.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell) and 'type' in cell
-    )
-    total_lower_right_cells = sum(
-        1 for cell in lower_right.to_numpy().flatten() 
-        if is_dict_and_not_empty(cell)
-    )
-
-    non_data_total_correct = non_data_left_correct + non_data_upper_correct + non_data_upper_left_correct
-    non_data_total_cells = total_upper_cells + total_upper_left_cells + total_left_cells
-
-    data_total_correct = data_lower_right_correct
-    data_total_cells = total_lower_right_cells
-
-    if non_data_total_cells == 0 or data_total_cells == 0:
-        return 0  # Return zero if any denominator is zero
-
-    if average_type == 'macro':
-        score = ((non_data_total_correct / non_data_total_cells) + (data_total_correct / data_total_cells)) / 2
-    else:
-        score = (non_data_total_correct + data_total_correct) / (non_data_total_cells + data_total_cells)
-
-    return score
-
-def new_calculate_score_probability(table, row_split, col_split, average_type='micro'):
     def sum_non_data_probabilities(region):
         """Calculate the sum of probabilities for non-data (first three elements of 'type')."""
         return sum(
