@@ -9,3 +9,6 @@ __pycache__
 *.log
 README.md
 rte/jrte-corpus
+rte/logs
+rte/results
+rte/fine_tuned_model

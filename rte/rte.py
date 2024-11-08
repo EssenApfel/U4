@@ -1,6 +1,6 @@
 import pandas as pd
 import torch
-from transformers import BertTokenizer, BertForSequenceClassification, Trainer, TrainingArguments
+from transformers import BertJapaneseTokenizer, BertForSequenceClassification, Trainer, TrainingArguments
 from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
@@ -62,7 +62,7 @@ df.columns = ["label", "s1", "s2"]
 # モデル指定
 model_name = "cl-tohoku/bert-large-japanese-v2"
     
-tokenizer = BertTokenizer.from_pretrained(model_name)
+tokenizer = BertJapaneseTokenizer.from_pretrained(model_name)
 train_dataset = CustomDataset(df, tokenizer, max_len=128)
 
 train_df, eval_df = train_test_split(df, test_size=0.2, random_state=42)
@@ -72,27 +72,40 @@ eval_dataset = CustomDataset(eval_df, tokenizer, max_len=128)
 model = BertForSequenceClassification.from_pretrained(model_name, num_labels=2)
 
 
+from transformers import EarlyStoppingCallback
+
 training_args = TrainingArguments(
-    output_dir='./results',           # 出力ディレクトリ
-    num_train_epochs=3,               # エポック数
-    per_device_train_batch_size=16,   # バッチサイズ
-    per_device_eval_batch_size=16,    # 評価時のバッチサイズ
-    warmup_steps=500,                 # 学習率のウォームアップステップ数
-    weight_decay=0.01,                # 重みの減衰率
-    logging_dir='./logs',             # ログの出力ディレクトリ
+    output_dir='./results',
+    num_train_epochs=30,                  # 最大エポック数を30に設定
+    per_device_train_batch_size=16,
+    per_device_eval_batch_size=16,
+    warmup_steps=500,
+    weight_decay=0.01,
+    logging_dir='./logs',
     logging_steps=10,
-    evaluation_strategy="epoch"       # 各エポック終了後に評価
+    eval_strategy="epoch",                # 各エポック終了後に評価
+    save_strategy="epoch",                # 各エポック終了後にモデルを保存
+    load_best_model_at_end=True           # 早期終了後に最良モデルをロード
 )
 
+# Early Stoppingのコールバックを設定
+# patience=3 は、3エポック評価が改善されない場合に学習を停止
+early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=3)
 
+# Trainerの初期化にcallbackを追加
 trainer = Trainer(
-    model=model,                         # モデル
-    args=training_args,                  # 訓練設定
-    train_dataset=train_dataset,         # トレーニングデータセット
-    eval_dataset=eval_dataset,           # 評価データセット
-    compute_metrics=compute_metrics      # 精度計算関数
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    compute_metrics=compute_metrics,
+    callbacks=[early_stopping_callback]    # EarlyStoppingをコールバックに追加
 )
 trainer.train()
 
 eval_results = trainer.evaluate()
 print(eval_results)
+
+# モデルの保存
+trainer.save_model('./fine_tuned_model')
+tokenizer.save_pretrained('./fine_tuned_model')
