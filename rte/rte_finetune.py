@@ -30,6 +30,7 @@ def main():
 
     # Pre-processing.
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+    print(x_train[0], x_test[0], y_train[0], y_test[0])
     target_vocab = Vocab().fit(y_train)
     features_train, labels_train = convert_examples_to_features(
         x_train,
