@@ -32,7 +32,11 @@ def predict(s1, s2):
     
     # ログitsから予測ラベルを取得
     logits = outputs.logits
-    predicted_class = torch.argmax(logits, dim=1).item()
+    # predicted_class = torch.argmax(logits, dim=1).item()
+
+    import torch.nn.functional as F
+    probs = F.softmax(logits, dim=1)
+    predicted_class = probs.squeeze().tolist()
     
     return predicted_class
 
