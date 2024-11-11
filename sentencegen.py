@@ -167,7 +167,8 @@ def generate_sentences_from_table(table, tde_processed=False, average_type='micr
 
 def process_and_save_sentences(root_dir, tde_processed, average_type, label_type):
     # 保存先ディレクトリ名にaverage_typeとlabel_typeを含める
-    save_dir = f"table_qa/valid_tqa/sentencegen_output/output_{average_type}_{label_type}"
+    # save_dir = f"table_qa/valid_tqa/sentencegen_output/output_{average_type}_{label_type}"
+    save_dir = f"sentencegen_output_{average_type}_{label_type}"
     
     for file_path in iterate_search_files(root_dir, '.pkl'):  # pklファイルを探索
         try:
