@@ -12,3 +12,4 @@ rte/jrte-corpus
 rte/logs
 rte/results
 rte/fine_tuned_model
+rte/jsnli_1.1
