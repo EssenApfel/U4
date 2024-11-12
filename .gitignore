@@ -8,8 +8,9 @@ TDEmodel/
 __pycache__
 *.log
 README.md
+rte/fine_tuned_jrte
 rte/jrte-corpus
+rte/jsnli_1.1
 rte/logs
 rte/results
-rte/fine_tuned_model
-rte/jsnli_1.1
+sentencegen_output
