@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import os
+from torch import nn
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # 使用するGPUを1に指定
 
 
@@ -38,6 +39,18 @@ class CustomDataset(Dataset):
             'labels': torch.tensor(label, dtype=torch.long)
         }
         return item
+
+class CustomTrainer(Trainer):
+    def compute_loss(self, model, inputs, return_outputs=False):
+        labels = inputs.get("labels")
+        # forward pass
+        outputs = model(**inputs)
+        logits = outputs.get("logits")
+        weight = torch.tensor([0.5086200321577942, 29.502211989888046])
+        weight = weight.to('cuda:0') #cuda:0としているが，9行目で使用するGPUを1としているので，実際はcuda:1
+        loss_fct = nn.CrossEntropyLoss(weight=weight)
+        loss = loss_fct(logits.view(-1, self.model.config.num_labels), labels.view(-1))
+        return (loss, outputs) if return_outputs else loss
     
 
 def compute_metrics(pred):
@@ -59,6 +72,14 @@ def compute_metrics(pred):
 df = pd.read_csv("training_data.tsv", sep='\t', header=None, usecols=[0, 1, 2])
 # 列の名前をわかりやすく設定
 df.columns = ["label", "s1", "s2"]
+
+
+# クラス重みを指定
+label_counts = df['label'].value_counts()
+total_samples = len(df)
+class_weights = [(total_samples / (count * len(label_counts))) for label, count in label_counts.items()]
+print(class_weights)
+class_weights = torch.tensor(class_weights)  # 各クラスの重み
 
 
 # モデル指定
@@ -94,13 +115,13 @@ training_args = TrainingArguments(
 early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=3)
 
 # Trainerの初期化にcallbackを追加
-trainer = Trainer(
+trainer = CustomTrainer(
     model=model,
     args=training_args,
     train_dataset=train_dataset,
     eval_dataset=eval_dataset,
     compute_metrics=compute_metrics,
-    callbacks=[early_stopping_callback]    # EarlyStoppingをコールバックに追加
+    callbacks=[early_stopping_callback],    # EarlyStoppingをコールバックに追加
 )
 trainer.train()
 
