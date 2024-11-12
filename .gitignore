@@ -14,3 +14,4 @@ rte/jsnli_1.1
 rte/logs
 rte/results
 sentencegen_output
+rte/training_data.tsv
