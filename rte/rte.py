@@ -4,6 +4,8 @@ from transformers import BertJapaneseTokenizer, BertForSequenceClassification, T
 from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # 使用するGPUを1に指定
 
 
 class CustomDataset(Dataset):
@@ -53,8 +55,8 @@ def compute_metrics(pred):
 
 
 # ファイルパスを指定してTSVファイルを読み込む
-df = pd.read_csv("jrte-corpus/data/rte.lrec2020_sem_long.tsv", sep='\t', header=None, usecols=[1, 2, 3])
-
+# df = pd.read_csv("jrte-corpus/data/rte.lrec2020_sem_long.tsv", sep='\t', header=None, usecols=[1, 2, 3])
+df = pd.read_csv("training_data.tsv", sep='\t', header=None, usecols=[0, 1, 2])
 # 列の名前をわかりやすく設定
 df.columns = ["label", "s1", "s2"]
 
@@ -63,11 +65,10 @@ df.columns = ["label", "s1", "s2"]
 model_name = "cl-tohoku/bert-large-japanese-v2"
     
 tokenizer = BertJapaneseTokenizer.from_pretrained(model_name)
-train_dataset = CustomDataset(df, tokenizer, max_len=128)
 
 train_df, eval_df = train_test_split(df, test_size=0.2, random_state=42)
-train_dataset = CustomDataset(train_df, tokenizer, max_len=128)
-eval_dataset = CustomDataset(eval_df, tokenizer, max_len=128)
+train_dataset = CustomDataset(train_df, tokenizer, max_len=256)
+eval_dataset = CustomDataset(eval_df, tokenizer, max_len=256)
 
 model = BertForSequenceClassification.from_pretrained(model_name, num_labels=2)
 
@@ -76,7 +77,7 @@ from transformers import EarlyStoppingCallback
 
 training_args = TrainingArguments(
     output_dir='./results',
-    num_train_epochs=30,                  # 最大エポック数を30に設定
+    num_train_epochs=5,                  # 最大エポック数を30に設定
     per_device_train_batch_size=16,
     per_device_eval_batch_size=16,
     warmup_steps=500,
