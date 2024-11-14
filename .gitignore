@@ -8,7 +8,7 @@ TDEmodel/
 __pycache__
 *.log
 README.md
-rte/fine_tuned_jrte
+rte/fine_tuned*
 rte/jrte-corpus
 rte/jsnli_1.1
 rte/logs
