@@ -21,7 +21,7 @@ def create_training_data(questions_path, csv_root, output_path):
         target_cell_id = question_info['cell_id']
         
         # 該当するCSVファイルを読み込む
-        csv_path = os.path.join(csv_root, doc_id, f"{table_id}_sentence.csv")
+        csv_path = os.path.join(csv_root, doc_id, f"{table_id}_sentences.csv")
         if os.path.exists(csv_path):
             csv_data = pd.read_csv(csv_path)
             
@@ -53,7 +53,7 @@ def create_training_data(questions_path, csv_root, output_path):
     print(f"Training data saved to {output_path}")
 
 # 実行例
-questions_path = 'path/to/questions.json'
-csv_root = 'path/to/csv/root'
+questions_path = 'table_qa/train_tqa/questions_tqa_train.json'
+csv_root = 'table_qa/train_tqa/sentencegen_output/null_noappend'
 output_path = 'training_data.tsv'
 create_training_data(questions_path, csv_root, output_path)
