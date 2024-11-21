@@ -6,7 +6,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import os
 from torch import nn
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # 使用するGPUを1に指定
+from transformers import T5Tokenizer, RobertaForSequenceClassification, MLukeTokenizer, LukeForSequenceClassification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # 使用するGPUを1に指定
 
 
 class CustomDataset(Dataset):
@@ -40,19 +43,6 @@ class CustomDataset(Dataset):
         }
         return item
 
-class CustomTrainer(Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
-        labels = inputs.get("labels")
-        # forward pass
-        outputs = model(**inputs)
-        logits = outputs.get("logits")
-        weight = torch.tensor([0.5086200321577942, 29.502211989888046])
-        weight = weight.to('cuda:0') #cuda:0としているが，9行目で使用するGPUを1としているので，実際はcuda:1
-        loss_fct = nn.CrossEntropyLoss(weight=weight)
-        loss = loss_fct(logits.view(-1, self.model.config.num_labels), labels.view(-1))
-        return (loss, outputs) if return_outputs else loss
-    
-
 def compute_metrics(pred):
     labels = pred.label_ids
     preds = pred.predictions.argmax(-1)
@@ -69,36 +59,48 @@ def compute_metrics(pred):
 
 # ファイルパスを指定してTSVファイルを読み込む
 # df = pd.read_csv("jrte-corpus/data/rte.lrec2020_sem_long.tsv", sep='\t', header=None, usecols=[1, 2, 3])
-df = pd.read_csv("training_data.tsv", sep='\t', header=None, usecols=[0, 1, 2])
+df = pd.read_csv("training_data_random.tsv", sep='\t', header=None, usecols=[0, 1, 2])
 # 列の名前をわかりやすく設定
 df.columns = ["label", "s1", "s2"]
 
 
 # クラス重みを指定
-label_counts = df['label'].value_counts()
-total_samples = len(df)
-class_weights = [(total_samples / (count * len(label_counts))) for label, count in label_counts.items()]
-print(class_weights)
-class_weights = torch.tensor(class_weights)  # 各クラスの重み
+# label_counts = df['label'].value_counts()
+# total_samples = len(df)
+# class_weights = [(total_samples / (count * len(label_counts))) for label, count in label_counts.items()]
+# print(class_weights)
+# class_weights = torch.tensor(class_weights)  # 各クラスの重み
+
 
 
 # モデル指定
-model_name = "cl-tohoku/bert-large-japanese-v2"
-    
-tokenizer = BertJapaneseTokenizer.from_pretrained(model_name)
+# model_name = "cl-tohoku/bert-large-japanese-v2"
+# tokenizer = BertJapaneseTokenizer.from_pretrained(model_name)
+# model = BertForSequenceClassification.from_pretrained(model_name, num_labels=2)
+
+# model_name = "rinna/japanese-roberta-base"
+# tokenizer = T5Tokenizer.from_pretrained(model_name)
+# tokenizer.do_lower_case = True  # due to some bug of tokenizer config loading
+# model = RobertaForSequenceClassification.from_pretrained(model_name, num_labels=2)
+
+model_name = "ku-nlp/deberta-v3-base-japanese"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
+
+# model_name = "studio-ousia/luke-japanese-large"
+# tokenizer = MLukeTokenizer.from_pretrained(model_name)
+# model = LukeForSequenceClassification.from_pretrained(model_name, num_labels=2)
+
 
 train_df, eval_df = train_test_split(df, test_size=0.2, random_state=42)
 train_dataset = CustomDataset(train_df, tokenizer, max_len=256)
 eval_dataset = CustomDataset(eval_df, tokenizer, max_len=256)
 
-model = BertForSequenceClassification.from_pretrained(model_name, num_labels=2)
-
-
 from transformers import EarlyStoppingCallback
 
 training_args = TrainingArguments(
     output_dir='./results',
-    num_train_epochs=5,                  # 最大エポック数を30に設定
+    num_train_epochs=30,                  # 最大エポック数を30に設定
     per_device_train_batch_size=16,
     per_device_eval_batch_size=16,
     warmup_steps=500,
@@ -114,8 +116,18 @@ training_args = TrainingArguments(
 # patience=3 は、3エポック評価が改善されない場合に学習を停止
 early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=3)
 
-# Trainerの初期化にcallbackを追加
-trainer = CustomTrainer(
+# # Trainerの初期化にcallbackを追加
+# trainer = CustomTrainer(
+#     model=model,
+#     args=training_args,
+#     train_dataset=train_dataset,
+#     eval_dataset=eval_dataset,
+#     compute_metrics=compute_metrics,
+#     callbacks=[early_stopping_callback],    # EarlyStoppingをコールバックに追加
+# )
+
+
+trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=train_dataset,
