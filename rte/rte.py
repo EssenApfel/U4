@@ -54,14 +54,6 @@ def compute_metrics(pred):
         'recall': recall,
         'f1': f1
     }
-    
-
-
-# ファイルパスを指定してTSVファイルを読み込む
-# df = pd.read_csv("jrte-corpus/data/rte.lrec2020_sem_long.tsv", sep='\t', header=None, usecols=[1, 2, 3])
-df = pd.read_csv("training_data_random.tsv", sep='\t', header=None, usecols=[0, 1, 2])
-# 列の名前をわかりやすく設定
-df.columns = ["label", "s1", "s2"]
 
 
 # クラス重みを指定
@@ -75,21 +67,23 @@ df.columns = ["label", "s1", "s2"]
 
 # モデル指定
 # model_name = "cl-tohoku/bert-large-japanese-v2"
-# tokenizer = BertJapaneseTokenizer.from_pretrained(model_name)
-# model = BertForSequenceClassification.from_pretrained(model_name, num_labels=2)
-
 # model_name = "rinna/japanese-roberta-base"
-# tokenizer = T5Tokenizer.from_pretrained(model_name)
-# tokenizer.do_lower_case = True  # due to some bug of tokenizer config loading
-# model = RobertaForSequenceClassification.from_pretrained(model_name, num_labels=2)
-
+# model_name = "studio-ousia/luke-japanese-large"
 model_name = "ku-nlp/deberta-v3-base-japanese"
+
+# ファイルパスを指定してTSVファイルを読み込む
+# df = pd.read_csv("jrte-corpus/data/rte.lrec2020_sem_long.tsv", sep='\t', header=None, usecols=[1, 2, 3])
+# df = pd.read_csv("training_data_random.tsv", sep='\t', header=None, usecols=[0, 1, 2])
+df = pd.read_csv("jsnli_1.1/train_w_filtering_rmspace.tsv", sep='\t', header=None, usecols=[1, 3, 2])
+
+# ファインチューニング後のディレクトリ名の指定
+save_path = "./fine_tuned_jsnli_deberta"
+
+
+df.columns = ["label", "s1", "s2"]
+
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
-
-# model_name = "studio-ousia/luke-japanese-large"
-# tokenizer = MLukeTokenizer.from_pretrained(model_name)
-# model = LukeForSequenceClassification.from_pretrained(model_name, num_labels=2)
 
 
 train_df, eval_df = train_test_split(df, test_size=0.2, random_state=42)
@@ -116,17 +110,6 @@ training_args = TrainingArguments(
 # patience=3 は、3エポック評価が改善されない場合に学習を停止
 early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=3)
 
-# # Trainerの初期化にcallbackを追加
-# trainer = CustomTrainer(
-#     model=model,
-#     args=training_args,
-#     train_dataset=train_dataset,
-#     eval_dataset=eval_dataset,
-#     compute_metrics=compute_metrics,
-#     callbacks=[early_stopping_callback],    # EarlyStoppingをコールバックに追加
-# )
-
-
 trainer = Trainer(
     model=model,
     args=training_args,
@@ -141,5 +124,5 @@ eval_results = trainer.evaluate()
 print(eval_results)
 
 # モデルの保存
-trainer.save_model('./fine_tuned_model')
-tokenizer.save_pretrained('./fine_tuned_model')
+trainer.save_model(save_path)
+tokenizer.save_pretrained(save_path)
